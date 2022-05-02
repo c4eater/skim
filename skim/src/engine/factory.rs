@@ -8,8 +8,8 @@ use crate::{CaseMatching, MatchEngine, MatchEngineFactory};
 use regex::Regex;
 use std::sync::{Arc, LazyLock};
 
-static RE_AND: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"([^ |]+( +\| +[^ |]*)+)|( +)").unwrap());
-static RE_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r" +\| +").unwrap());
+static RE_AND: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"([^,|]+(,+\|,+[^,|]*)+)|(,+)").unwrap());
+static RE_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|").unwrap());
 //------------------------------------------------------------------------------
 // Exact engine factory
 pub struct ExactOrFuzzyEngineFactory {
@@ -140,15 +140,15 @@ impl AndOrEngineFactory {
         }
     }
 
-    // we want to treat `\ ` as plain white space
+    // we want to treat `\,` as plain comma
     // regex crate doesn't support look around, so I use a lazy workaround
-    // that replace `\ ` with `\0` ahead of split and replace it back afterwards
+    // that replaces `\,` with `\0` ahead of split and replaces it back afterwards
     fn parse_or(&self, query: &str, case: CaseMatching) -> Box<dyn MatchEngine> {
-        if query.trim().is_empty() {
+        if query.trim_matches(',').is_empty() {
             self.inner.create_engine_with_case(query, case)
         } else {
             let engines = RE_OR
-                .split(&self.mask_escape_space(query))
+                .split(&self.mask_escape_comma(query))
                 .map(|q| self.parse_and(q, case))
                 .collect();
             Box::new(OrEngine::builder().engines(engines).build())
@@ -156,37 +156,36 @@ impl AndOrEngineFactory {
     }
 
     fn parse_and(&self, query: &str, case: CaseMatching) -> Box<dyn MatchEngine> {
-        let query_trim = query.trim_matches(|c| c == ' ' || c == '|');
+        let query_trim = query.trim_matches(|c| c == ',' || c == '|');
         let mut engines = vec![];
         let mut last = 0;
         for mat in RE_AND.find_iter(query_trim) {
             let (start, end) = (mat.start(), mat.end());
-            let term = query_trim[last..start].trim_matches(|c| c == ' ' || c == '|');
-            let term = self.unmask_escape_space(term);
+            let term = query_trim[last..start].trim_matches(|c| c == ',' || c == '|');
+            let term = self.unmask_escape_comma(term);
             if !term.is_empty() {
                 engines.push(self.inner.create_engine_with_case(&term, case));
             }
 
-            if !mat.as_str().trim().is_empty() {
-                engines.push(self.parse_or(mat.as_str().trim(), case));
+            if !mat.as_str().trim_matches(',').is_empty() {
+                engines.push(self.parse_or(mat.as_str().trim_matches(','), case));
             }
             last = end;
         }
 
-        let term = query_trim[last..].trim_matches(|c| c == ' ' || c == '|');
-        let term = self.unmask_escape_space(term);
+        let term = query_trim[last..].trim_matches(|c| c == ',' || c == '|');
         if !term.is_empty() {
             engines.push(self.inner.create_engine_with_case(&term, case));
         }
         Box::new(AndEngine::builder().engines(engines).build())
     }
 
-    fn mask_escape_space(&self, string: &str) -> String {
-        string.replace("\\ ", "\0")
+    fn mask_escape_comma(&self, string: &str) -> String {
+        string.replace("\\,", "\0")
     }
 
-    fn unmask_escape_space(&self, string: &str) -> String {
-        string.replace('\0', " ")
+    fn unmask_escape_comma(&self, string: &str) -> String {
+        string.replace("\0", ",")
     }
 }
 
