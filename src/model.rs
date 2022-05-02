@@ -652,8 +652,6 @@ impl Model {
                 previewer.handle(&ev);
             }
 
-            self.draw_preview(&env, false);
-
             let _ = self.do_with_widget(|root| self.term.draw(&root));
             let _ = self.term.present();
         }
@@ -784,7 +782,7 @@ impl Model {
             .grow(0)
             .shrink(0)
             .split(Win::new(&self.query).grow(0).shrink(0))
-            .split(Win::new(status_inline).grow(1).shrink(0));
+            .split(Win::new(status_inline).grow(0).shrink(0));
 
         let layout = &self.layout as &str;
         let win_main = match layout {
@@ -901,28 +899,12 @@ impl Draw for Status {
             &SPINNERS_UNICODE
         };
 
-        if self.inline_info {
-            col += canvas.put_char_with_attr(0, col, ' ', info_attr)?;
-        }
-
         // draw the spinner
         if self.reading && a_while_since_read {
             let mills = (self.time_since_read.as_secs() * 1000) as u32 + self.time_since_read.subsec_millis();
             let index = (mills / SPINNER_DURATION) % (spinner_set.len() as u32);
             let ch = spinner_set[index as usize];
             col += canvas.put_char_with_attr(0, col, ch, self.theme.spinner())?;
-        } else if self.inline_info {
-            col += canvas.put_char_with_attr(0, col, '<', self.theme.prompt())?;
-        } else {
-            col += canvas.put_char_with_attr(0, col, ' ', self.theme.prompt())?;
-        }
-
-        // display matched/total number
-        col += canvas.print_with_attr(0, col, format!(" {}/{}", self.matched, self.total).as_ref(), info_attr)?;
-
-        // display the matcher mode
-        if !self.matcher_mode.is_empty() {
-            col += canvas.print_with_attr(0, col, format!("/{}", &self.matcher_mode).as_ref(), info_attr)?;
         }
 
         // display the percentage of the number of processed items
@@ -934,20 +916,6 @@ impl Draw for Status {
                 info_attr,
             )?;
         }
-
-        // selected number
-        if self.multi_selection && self.selected > 0 {
-            col += canvas.print_with_attr(0, col, format!(" [{}]", self.selected).as_ref(), info_attr_bold)?;
-        }
-
-        // item cursor
-        let line_num_str = format!(
-            " {}/{}{}",
-            self.current_item_idx,
-            self.hscroll_offset,
-            if self.matcher_running { '.' } else { ' ' }
-        );
-        canvas.print_with_attr(0, screen_width - line_num_str.len(), &line_num_str, info_attr_bold)?;
 
         Ok(())
     }
