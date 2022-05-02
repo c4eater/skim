@@ -568,6 +568,11 @@ pub struct SkimOptions {
     #[arg(long, default_value = "c> ", help_heading = "Layout")]
     pub cmd_prompt: String,
 
+    /// Whether to start the skim window on the same line where sk was called
+    #[arg(long, help_heading = "No leading newline")]
+    pub no_leading_newline: bool,
+
+
     //  --- Display ---
     /// Parse ANSI color codes in input strings
     #[arg(long, help_heading = "Display")]
