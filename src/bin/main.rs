@@ -239,6 +239,7 @@ fn real_main() -> Result<i32, std::io::Error> {
         .arg(Arg::with_name("pre-select-file").long("pre-select-file").multiple(true).takes_value(true).default_value(""))
         .arg(Arg::with_name("no-clear-if-empty").long("no-clear-if-empty").multiple(true))
         .arg(Arg::with_name("show-cmd-error").long("show-cmd-error").multiple(true))
+        .arg(Arg::with_name("no-leading-newline").long("no-leading-newline").multiple(true))
         .get_matches_from(args);
 
     if opts.is_present("help") {
@@ -456,6 +457,7 @@ fn parse_options<'a>(options: &'a ArgMatches) -> SkimOptions<'a> {
         .exit0(options.is_present("exit-0"))
         .sync(options.is_present("sync"))
         .no_clear_if_empty(options.is_present("no-clear-if-empty"))
+        .has_leading_newline(!options.is_present("no-leading-newline"))
         .build()
         .unwrap()
 }
