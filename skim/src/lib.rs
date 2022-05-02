@@ -327,7 +327,8 @@ impl Skim {
                     .clear_on_exit(!options.no_clear)
                     .disable_alternate_screen(options.no_clear_start)
                     .clear_on_start(!options.no_clear_start)
-                    .hold(options.select_1 || options.exit_0 || options.sync),
+                    .hold(options.select_1 || options.exit_0 || options.sync)
+                    .has_leading_newline(!options.no_leading_newline)
             )
             .unwrap(),
         );
