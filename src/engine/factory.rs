@@ -9,7 +9,7 @@ use crate::item::RankBuilder;
 use crate::{CaseMatching, MatchEngine, MatchEngineFactory, Typos};
 use std::sync::{Arc, LazyLock};
 
-static RE_OR_WITH_SPACES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r" *\|+ *").unwrap());
+static RE_OR_WITH_COMMAS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r",*\|+,*").unwrap());
 
 //------------------------------------------------------------------------------
 // Exact engine factory
@@ -177,9 +177,9 @@ impl AndOrEngineFactory {
         if query.trim().is_empty() {
             return self.inner.create_engine_with_case(query, case);
         }
-        let and_engines = RE_OR_WITH_SPACES
+        let and_engines = RE_OR_WITH_COMMAS
             .replace_all(&Self::mask_escape_space(query), "|")
-            .split(' ')
+            .split(',')
             .filter_map(|and_term| {
                 if and_term.is_empty() {
                     return None;
